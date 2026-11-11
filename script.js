@@ -236,43 +236,36 @@
   /* ===================== 方框（气泡）模式 ===================== */
 
   var live = [];
-  var bag = [];
-  var recent = [];
   var seq = 0;
   var spawnTimer = 0;
 
   var query = new URLSearchParams(location.search);
   var order = query.get('order') === 'sequence' ? 'sequence' : CONFIG.order;
 
-  function drawFromBag() {
-    if (!bag.length) {
-      bag = WISHES.slice();
-      for (var i = bag.length - 1; i > 0; i--) {
-        var j = (Math.random() * (i + 1)) | 0;
-        var tmp = bag[i];
-        bag[i] = bag[j];
-        bag[j] = tmp;
-      }
-    }
-    return bag.pop();
-  }
-
+  // 同一时间屏幕上不允许出现两句相同的话：
+  // 只从未出现在屏幕上的文案里挑，全都在屏上就先不生成
   function nextWish() {
+    var shown = {};
+    for (var i = 0; i < live.length; i++) shown[live[i].text] = true;
+
+    var pool = [];
+    for (var k = 0; k < WISHES.length; k++) {
+      if (!shown[WISHES[k]]) pool.push(WISHES[k]);
+    }
+    if (!pool.length) return null;
+
     if (order === 'sequence') {
-      var t = WISHES[seq % WISHES.length];
-      seq++;
-      return t;
+      for (var s = 0; s < WISHES.length; s++) {
+        var t = WISHES[(seq + s) % WISHES.length];
+        if (!shown[t]) {
+          seq = seq + s + 1;
+          return t;
+        }
+      }
+      return null;
     }
 
-    // 尽量别让同一句话挨得太近
-    var text = drawFromBag();
-    var guard = 0;
-    while (recent.indexOf(text) > -1 && guard++ < 12) {
-      text = drawFromBag();
-    }
-    recent.push(text);
-    if (recent.length > 6) recent.shift();
-    return text;
+    return pool[(Math.random() * pool.length) | 0];
   }
 
   function overlapArea(a, b) {
@@ -283,6 +276,9 @@
 
   function spawn() {
     if (document.hidden) return;
+
+    var wish = nextWish();
+    if (!wish) return; // 屏幕上已经没有不重复的文案了，等下一轮
 
     var W = window.innerWidth;
     var H = window.innerHeight;
@@ -299,14 +295,19 @@
 
     var text = document.createElement('span');
     text.className = 'bubble-text';
-    text.textContent = nextWish();
+    text.textContent = wish;
 
     inner.appendChild(tag);
     inner.appendChild(text);
     b.appendChild(inner);
 
+    // 半透明的粉彩 + 一层白纱：压在图片上时能透出底图，字还看得清
     var c = COLORS[(Math.random() * COLORS.length) | 0];
-    b.style.setProperty('--bubble-bg', 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',0.87)');
+    b.style.setProperty(
+      '--bubble-bg',
+      'linear-gradient(180deg, rgba(255,255,255,0.5), rgba(255,255,255,0.22)), ' +
+        'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',0.5)'
+    );
 
     b.style.visibility = 'hidden';
     document.body.appendChild(b);
@@ -369,7 +370,7 @@
 
     requestAnimationFrame(function () { b.classList.add('in'); });
 
-    var item = { el: b, rect: chosen, timer: 0, done: false };
+    var item = { el: b, rect: chosen, text: wish, timer: 0, done: false };
     live.push(item);
 
     // 点一下方框：立刻碎掉消失
