@@ -237,18 +237,14 @@
 
   var live = [];
   var bag = [];
+  var recent = [];
   var seq = 0;
   var spawnTimer = 0;
 
   var query = new URLSearchParams(location.search);
   var order = query.get('order') === 'sequence' ? 'sequence' : CONFIG.order;
 
-  function nextWish() {
-    if (order === 'sequence') {
-      var t = WISHES[seq % WISHES.length];
-      seq++;
-      return t;
-    }
+  function drawFromBag() {
     if (!bag.length) {
       bag = WISHES.slice();
       for (var i = bag.length - 1; i > 0; i--) {
@@ -259,6 +255,24 @@
       }
     }
     return bag.pop();
+  }
+
+  function nextWish() {
+    if (order === 'sequence') {
+      var t = WISHES[seq % WISHES.length];
+      seq++;
+      return t;
+    }
+
+    // 尽量别让同一句话挨得太近
+    var text = drawFromBag();
+    var guard = 0;
+    while (recent.indexOf(text) > -1 && guard++ < 12) {
+      text = drawFromBag();
+    }
+    recent.push(text);
+    if (recent.length > 6) recent.shift();
+    return text;
   }
 
   function overlapArea(a, b) {
