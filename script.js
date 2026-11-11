@@ -1,4 +1,4 @@
-/* =========================================================
+﻿/* =========================================================
  * 写给蒋伯驾的一封信 · 交互
  *
  * 想改内容，只需要改下面「可修改区」：
@@ -46,20 +46,22 @@
   ];
 
   const CONFIG = {
-    spawnMs: 280,        // 每多少毫秒尝试冒出一个方框（越小越密）
-    lifeMs: 8200,        // 每个方框停留多久（之后淡出）
-    maxBubbles: 30,      // 屏幕上最多同时存在几个
-    overlapRatio: 0.2,   // 允许和新方框重叠的面积比例，越大越"叠"
-    order: 'random'      // 'random' 随机不重复 / 'sequence' 按上面顺序
+    spawnMs: 340,        // 每多少毫秒尝试冒出一个方框
+    lifeMs: 7000,        // 每个方框停留多久（之后淡出）
+    maxBubbles: 20,      // 屏幕上最多同时存在几个
+    targetBubbles: 20,   // 想凑到几个（挤不下时会放宽重叠）
+    overlapRatio: 0.16,  // 允许和新方框重叠的面积比例
+    photoBand: 'center', // 图片区域：'center' = 中间完整图，'full' = 整屏铺满
+    order: 'random'      // 'random' 随机 / 'sequence' 按上面顺序
   };
 
-  /* 低饱和马卡龙色（取自原站配色） */
+  /* 美拉德色系：奶咖、焦糖、燕麦、榛果 */
   const COLORS = [
-    [248, 215, 218], [245, 198, 203], [241, 224, 230], [248, 240, 242],
-    [255, 243, 205], [209, 236, 241], [195, 230, 203], [212, 237, 218],
-    [226, 240, 203], [209, 231, 221], [226, 201, 232], [214, 182, 216],
-    [200, 182, 226], [209, 196, 233], [232, 234, 246], [227, 242, 253],
-    [187, 222, 251], [179, 229, 252], [204, 229, 255], [231, 242, 250]
+    [245, 233, 216], [238, 224, 203], [230, 213, 188], [222, 202, 172],
+    [213, 187, 152], [205, 176, 138], [196, 163, 122], [232, 216, 196],
+    [224, 199, 170], [216, 186, 151], [207, 172, 133], [199, 158, 115],
+    [246, 237, 226], [236, 218, 197], [226, 203, 176], [214, 186, 156],
+    [203, 169, 135], [241, 226, 210], [233, 210, 187], [221, 195, 168]
   ];
 
   const HOLD_MS = 1500;          // 长按多久算验证通过
@@ -236,6 +238,7 @@
   /* ===================== 方框（气泡）模式 ===================== */
 
   var live = [];
+  var presentTexts = {};
   var seq = 0;
   var spawnTimer = 0;
 
@@ -245,8 +248,7 @@
   // 同一时间屏幕上不允许出现两句相同的话：
   // 只从未出现在屏幕上的文案里挑，全都在屏上就先不生成
   function nextWish() {
-    var shown = {};
-    for (var i = 0; i < live.length; i++) shown[live[i].text] = true;
+    var shown = presentTexts;
 
     var pool = [];
     for (var k = 0; k < WISHES.length; k++) {
@@ -276,6 +278,7 @@
 
   function spawn() {
     if (document.hidden) return;
+    if (live.length >= CONFIG.maxBubbles) return; // 屏上已经够多了
 
     var wish = nextWish();
     if (!wish) return; // 屏幕上已经没有不重复的文案了，等下一轮
@@ -301,21 +304,13 @@
     inner.appendChild(text);
     b.appendChild(inner);
 
-    // 半透明的粉彩 + 一层白纱：压在图片上时能透出底图，字还看得清
-    var c = COLORS[(Math.random() * COLORS.length) | 0];
-    b.style.setProperty(
-      '--bubble-bg',
-      'linear-gradient(180deg, rgba(255,255,255,0.5), rgba(255,255,255,0.22)), ' +
-        'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',0.5)'
-    );
-
     b.style.visibility = 'hidden';
     document.body.appendChild(b);
 
     var w = b.offsetWidth;
     var h = b.offsetHeight;
 
-    // 位置：在网格锚点上找一块没被占用的地方；实在挤不下就这轮不生成
+    // 位置：在网格锚点上找一块没被占用的地方
     var pad = 12;
     var maxX = Math.max(pad, W - w - pad);
     var minY = 62;
@@ -336,8 +331,10 @@
     }
 
     var chosen = null;
+    var bestRect = null;
+    var bestWorst = Infinity;
     var area = w * h;
-    var tolerance = area * CONFIG.overlapRatio + 300; // 叠一点，画面更满
+    var tolerance = area * CONFIG.overlapRatio + 300;
 
     for (var n = 0; n < anchors.length; n++) {
       var x = anchors[n][0] + (Math.random() * 10 - 5);
@@ -346,13 +343,20 @@
       y = Math.max(minY, Math.min(y, maxY));
 
       var rect = { left: x, top: y, right: x + w, bottom: y + h };
-      var free = true;
+      var worst = 0;
 
       for (var m = 0; m < live.length; m++) {
-        if (overlapArea(rect, live[m].rect) > tolerance) { free = false; break; }
+        var ov = overlapArea(rect, live[m].rect);
+        if (ov > worst) worst = ov;
       }
 
-      if (free) { chosen = rect; break; }
+      if (worst <= tolerance) { chosen = rect; break; }
+      if (worst < bestWorst) { bestWorst = worst; bestRect = rect; }
+    }
+
+    // 为了凑够 targetBubbles，实在没空位时退而求其次，用最不挤的那个位置
+    if (!chosen && bestRect && live.length < CONFIG.targetBubbles && bestWorst <= area * 0.36) {
+      chosen = bestRect;
     }
 
     if (!chosen) {
@@ -364,6 +368,21 @@
     b.style.top = chosen.top + 'px';
     b.style.visibility = '';
 
+    // 只有压在图片上的方框稍微透一点，其余保持正常
+    var overImage = CONFIG.photoBand === 'full';
+    if (CONFIG.photoBand === 'center') {
+      var bandH = Math.min(H, W * 0.75);
+      var bandTop = (H - bandH) / 2;
+      overImage = chosen.top + h > bandTop && chosen.top < bandTop + bandH;
+    }
+
+    var c = COLORS[(Math.random() * COLORS.length) | 0];
+    var alpha = overImage ? 0.84 : 0.94;
+    b.style.setProperty(
+      '--bubble-bg',
+      'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + alpha + ')'
+    );
+
     b.style.setProperty('--float-dur', (3.2 + Math.random() * 1.8).toFixed(2) + 's');
     b.style.setProperty('--float-delay', (-Math.random() * 3).toFixed(2) + 's');
     b.style.setProperty('--float-y', (-5 - Math.random() * 8).toFixed(1) + 'px');
@@ -372,6 +391,7 @@
 
     var item = { el: b, rect: chosen, text: wish, timer: 0, done: false };
     live.push(item);
+    presentTexts[wish] = (presentTexts[wish] || 0) + 1;
 
     // 点一下方框：立刻碎掉消失
     b.addEventListener('click', function (e) {
@@ -397,7 +417,14 @@
     var idx = live.indexOf(item);
     if (idx > -1) live.splice(idx, 1);
 
-    setTimeout(function () { item.el.remove(); }, pop ? 380 : 750);
+    setTimeout(function () {
+      item.el.remove();
+      // 等它真的从画面上消失，才允许同一句话再次出现
+      if (presentTexts[item.text]) {
+        presentTexts[item.text]--;
+        if (presentTexts[item.text] <= 0) delete presentTexts[item.text];
+      }
+    }, pop ? 380 : 750);
   }
 
   function startLetter() {

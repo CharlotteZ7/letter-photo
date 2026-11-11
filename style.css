@@ -411,7 +411,7 @@ body.in-wall .rain {
 .bubble {
   position: fixed;
   z-index: 6;
-  max-width: min(72vw, 300px);
+  max-width: min(62vw, 250px);
   opacity: 0;
   transform: translateY(14px) scale(0.94);
   transition: opacity 0.55s ease, transform 0.55s cubic-bezier(0.2, 0.8, 0.3, 1);
@@ -439,8 +439,8 @@ body.in-wall .rain {
 }
 
 .bubble-inner {
-  min-width: 96px;
-  padding: 10px 12px 11px;
+  min-width: 82px;
+  padding: 8px 11px 9px;
   border-radius: 16px;
   border: 1.5px solid rgba(255, 255, 255, 0.85);
   background: var(--bubble-bg, #f8d7da);
@@ -459,20 +459,20 @@ body.in-wall .rain {
   padding: 2px 7px;
   border-radius: 7px;
   background: rgba(255, 255, 255, 0.45);
-  font-size: 9.5px;
+  font-size: 8.5px;
   font-weight: 700;
   letter-spacing: 0.6px;
-  color: rgba(64, 74, 84, 0.72);
+  color: rgba(94, 68, 48, 0.75);
 }
 
 .bubble-text {
   display: block;
-  font-size: 14.5px;
+  font-size: 13px;
   font-weight: 700;
   line-height: 1.5;
   letter-spacing: 0.2px;
   text-align: center;
-  color: #3c4148;
+  color: #4a3527;
   word-break: break-word;
 }
 
@@ -609,7 +609,7 @@ body.in-wall .rain {
   }
 
   .bubble-text {
-    font-size: 14.5px;
+    font-size: 13px;
   }
 }
 
