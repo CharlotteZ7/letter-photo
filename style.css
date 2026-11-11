@@ -1,0 +1,636 @@
+﻿/* =========================================================
+   写给蒋伯驾的一封信 · 样式
+   配色：低饱和天蓝 → 淡紫 → 樱粉
+   ========================================================= */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  min-height: 100vh;
+  min-height: 100dvh;
+  font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
+    "Noto Sans SC", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: #2f3a45;
+  background: linear-gradient(135deg, #d3ebff 0%, #e7e2f6 45%, #fbd9e5 100%);
+  overflow: hidden;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  border: 0;
+  background: none;
+}
+
+/* ===================== 背景装饰 ===================== */
+
+/* 第三段的背景图：默认隐藏，进入字卡墙时淡入
+   结构：模糊铺底（::before）→ 中间完整图（.wall-photo）→ 暗角（::after） */
+.wall-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  overflow: hidden;
+  background: #1a120f;
+  opacity: 0;
+  transition: opacity 1.2s ease;
+}
+
+/* 上下铺底：同一张图放大后模糊，做氛围 */
+.wall-bg::before {
+  content: "";
+  position: absolute;
+  inset: -12%;
+  background: url("./asset/bg-letter.jpg?v=2") center / cover no-repeat;
+  filter: blur(30px) brightness(0.6) saturate(1.1);
+  transform: scale(1.08);
+}
+
+/* 中间：完整不裁切，上下用遮罩融进模糊底 */
+.wall-photo {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  justify-content: center;
+}
+
+.wall-photo img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 100vh;
+  object-fit: contain;
+  -webkit-mask-image: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0) 0%,
+    #000 13%,
+    #000 87%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  mask-image: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0) 0%,
+    #000 13%,
+    #000 87%,
+    rgba(0, 0, 0, 0) 100%
+  );
+}
+
+/* 暗角：压一压四周，让字卡更清楚 */
+.wall-bg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    120% 80% at 50% 45%,
+    rgba(18, 10, 8, 0.06) 0%,
+    rgba(18, 10, 8, 0.26) 70%,
+    rgba(18, 10, 8, 0.55) 100%
+  );
+}
+
+.wall-bg.show {
+  opacity: 1;
+}
+
+.decor {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.star {
+  position: absolute;
+  border-radius: 50%;
+  background: #fff;
+  animation: twinkle 2.8s ease-in-out infinite alternate;
+}
+
+.rain {
+  position: absolute;
+  top: -14vh;
+  border-radius: 2px;
+  background: linear-gradient(
+    to bottom,
+    rgba(126, 156, 200, 0) 0%,
+    rgba(126, 156, 200, 0.5) 30%,
+    rgba(96, 128, 175, 0.88) 60%,
+    rgba(126, 156, 200, 0) 100%
+  );
+  animation-name: rainfall;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+  will-change: transform, opacity;
+}
+
+/* 进入第三段后，背景变暗，雨丝改成偏白才看得见 */
+body.in-wall .rain {
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 246, 240, 0.4) 30%,
+    rgba(255, 255, 255, 0.75) 60%,
+    rgba(255, 255, 255, 0) 100%
+  );
+}
+
+@keyframes twinkle {
+  from {
+    opacity: 0.25;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 0.95;
+    transform: scale(1.15);
+  }
+}
+
+@keyframes rainfall {
+  0% {
+    transform: translate3d(0, 0, 0) rotate(5deg);
+    opacity: 0;
+  }
+  8% {
+    opacity: 0.9;
+  }
+  85% {
+    opacity: 0.55;
+  }
+  100% {
+    transform: translate3d(-46px, 120vh, 0) rotate(5deg);
+    opacity: 0;
+  }
+}
+
+/* ===================== 通用：屏幕 + 毛玻璃卡片 ===================== */
+
+.screen {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 22px;
+  transition: opacity 0.55s ease, transform 0.55s ease;
+}
+
+.screen[hidden] {
+  display: none;
+}
+
+.screen.hide {
+  opacity: 0;
+  transform: scale(0.985);
+  pointer-events: none;
+}
+
+.card {
+  position: relative;
+  width: 100%;
+  max-width: 392px;
+  padding: 42px 28px 34px;
+  text-align: center;
+  border-radius: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.78);
+  background: rgba(255, 255, 255, 0.52);
+  -webkit-backdrop-filter: blur(22px) saturate(150%);
+  backdrop-filter: blur(22px) saturate(150%);
+  box-shadow: 0 24px 60px rgba(176, 150, 178, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  animation: cardIn 0.7s cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+
+@keyframes cardIn {
+  from {
+    opacity: 0;
+    transform: translateY(22px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ===================== 第一屏：欢迎 ===================== */
+
+.welcome-emoji {
+  font-size: 62px;
+  line-height: 1;
+  animation: bounce 2.4s ease-in-out infinite;
+  filter: drop-shadow(0 8px 18px rgba(214, 120, 160, 0.25));
+}
+
+.welcome-title {
+  margin-top: 18px;
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: #2d5a5a;
+}
+
+.welcome-msg {
+  margin: 12px 0 30px;
+  font-size: 15px;
+  line-height: 1.7;
+  color: #6b7580;
+}
+
+.btn {
+  display: block;
+  width: 100%;
+  padding: 17px 20px;
+  border-radius: 18px;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: #fff;
+  background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+  box-shadow: 0 12px 26px rgba(168, 237, 234, 0.55),
+    0 3px 10px rgba(254, 214, 227, 0.6);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+  transition: transform 0.22s ease, filter 0.22s ease, box-shadow 0.22s ease;
+}
+
+.btn:active {
+  transform: scale(0.97);
+  filter: brightness(0.98);
+}
+
+/* ===================== 第二屏：指纹验证 ===================== */
+
+.scan-icon {
+  font-size: 54px;
+  line-height: 1;
+  animation: bounce 2.4s ease-in-out infinite;
+}
+
+.scan-title {
+  margin-top: 12px;
+  font-size: 29px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: #2d5a5a;
+}
+
+.scan-quote {
+  margin: 14px 2px 24px;
+  font-size: 14px;
+  line-height: 1.9;
+  color: #6b7580;
+}
+
+.print-box {
+  position: relative;
+  height: 158px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 22px;
+  border: 2px solid rgba(168, 237, 234, 0.55);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.97),
+    rgba(247, 251, 252, 0.95)
+  );
+  box-shadow: inset 0 2px 10px rgba(168, 237, 234, 0.14);
+  cursor: pointer;
+  touch-action: none;
+  transition: border-color 0.35s ease, box-shadow 0.35s ease,
+    transform 0.2s ease;
+}
+
+.print-box:active {
+  transform: scale(0.99);
+}
+
+.print-box.pressing {
+  box-shadow: inset 0 2px 18px rgba(168, 237, 234, 0.35),
+    0 0 0 2px rgba(168, 237, 234, 0.25);
+}
+
+.ring {
+  position: absolute;
+  width: 136px;
+  height: 136px;
+  transform: rotate(-90deg);
+  pointer-events: none;
+}
+
+.ring-bg,
+.ring-fg {
+  fill: none;
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-dasharray: 339.292;
+}
+
+.ring-bg {
+  stroke: rgba(168, 237, 234, 0.25);
+}
+
+.ring-fg {
+  stroke: #a8edea;
+  stroke-dashoffset: 339.292;
+}
+
+.ring-fg.returning {
+  transition: stroke-dashoffset 0.4s ease;
+}
+
+.fingerprint {
+  width: 96px;
+  height: 96px;
+  animation: fpPulse 2.6s ease-in-out infinite;
+  transition: transform 0.45s ease, filter 0.45s ease;
+}
+
+.print-box.success {
+  border-color: rgba(74, 222, 128, 0.85);
+  box-shadow: inset 0 0 30px rgba(168, 237, 234, 0.35),
+    0 0 34px rgba(74, 222, 128, 0.45);
+}
+
+.print-box.success .fingerprint {
+  animation: none;
+  transform: scale(1.12);
+  filter: drop-shadow(0 0 16px rgba(74, 222, 128, 0.6));
+}
+
+.print-box.success .ring-fg {
+  stroke: #6ee7a5;
+}
+
+.ripple {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(168, 237, 234, 0.35);
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.ripple.go {
+  animation: ripple 0.9s ease-out;
+}
+
+.scan-hint {
+  margin-top: 20px;
+  font-size: 13px;
+  letter-spacing: 0.3px;
+  color: #78838e;
+}
+
+/* ===================== 气泡（方框模式） ===================== */
+
+.bubble {
+  position: fixed;
+  z-index: 6;
+  max-width: min(72vw, 300px);
+  opacity: 0;
+  transform: translateY(14px) scale(0.94);
+  transition: opacity 0.55s ease, transform 0.55s cubic-bezier(0.2, 0.8, 0.3, 1);
+  pointer-events: auto;
+  cursor: pointer;
+  will-change: transform, opacity;
+}
+
+.bubble.in {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.bubble.out {
+  opacity: 0;
+  transform: translateY(-12px) scale(0.97);
+  transition: opacity 0.7s ease, transform 0.7s ease;
+}
+
+/* 点一下：轻轻放大后消失 */
+.bubble.pop {
+  opacity: 0;
+  transform: scale(1.08);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.bubble-inner {
+  min-width: 96px;
+  padding: 10px 12px 11px;
+  border-radius: 16px;
+  border: 1.5px solid rgba(255, 255, 255, 0.85);
+  background: var(--bubble-bg, #f8d7da);
+  box-shadow: 0 12px 26px rgba(150, 120, 150, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.75);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  animation: floaty var(--float-dur, 4s) ease-in-out var(--float-delay, 0s)
+    infinite alternate;
+}
+
+.bubble-tag {
+  display: block;
+  width: fit-content;
+  margin: 0 auto 5px;
+  padding: 2px 7px;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.45);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  color: rgba(64, 74, 84, 0.72);
+}
+
+.bubble-text {
+  display: block;
+  font-size: 14.5px;
+  font-weight: 700;
+  line-height: 1.5;
+  letter-spacing: 0.2px;
+  text-align: center;
+  color: #3c4148;
+  word-break: break-word;
+}
+
+@keyframes floaty {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(var(--float-y, -8px));
+  }
+}
+
+/* ===================== 音乐按钮 ===================== */
+
+.music-btn {
+  position: fixed;
+  top: calc(14px + env(safe-area-inset-top));
+  right: 14px;
+  z-index: 60;
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.45);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 6px 18px rgba(150, 130, 160, 0.2);
+  cursor: pointer;
+  transition: opacity 0.4s ease, transform 0.2s ease;
+}
+
+.music-btn[hidden] {
+  display: none;
+}
+
+.music-btn:active {
+  transform: scale(0.94);
+}
+
+.music-btn span {
+  width: 3px;
+  border-radius: 2px;
+  background: #7a8b99;
+  animation: eq 0.9s ease-in-out infinite;
+}
+
+.music-btn span:nth-child(1) {
+  height: 10px;
+  animation-delay: 0s;
+}
+
+.music-btn span:nth-child(2) {
+  height: 17px;
+  animation-delay: 0.18s;
+}
+
+.music-btn span:nth-child(3) {
+  height: 13px;
+  animation-delay: 0.36s;
+}
+
+.music-btn.paused span {
+  animation-play-state: paused;
+}
+
+@keyframes eq {
+  0%,
+  100% {
+    transform: scaleY(0.55);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+/* ===================== 通用动画 ===================== */
+
+@keyframes bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-9px);
+  }
+}
+
+@keyframes fpPulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.03);
+    opacity: 0.92;
+  }
+}
+
+@keyframes ripple {
+  0% {
+    width: 0;
+    height: 0;
+    opacity: 0.9;
+  }
+  100% {
+    width: 240px;
+    height: 240px;
+    opacity: 0;
+  }
+}
+
+/* ===================== 小屏适配 ===================== */
+
+@media (max-width: 380px) {
+  .card {
+    padding: 36px 22px 30px;
+  }
+
+  .welcome-title {
+    font-size: 26px;
+  }
+
+  .scan-title {
+    font-size: 25px;
+  }
+
+  .welcome-emoji {
+    font-size: 54px;
+  }
+
+  .bubble-text {
+    font-size: 14.5px;
+  }
+}
+
+/* ===================== 尊重"减少动态效果" ===================== */
+
+@media (prefers-reduced-motion: reduce) {
+  .star,
+  .rain,
+  .bubble-inner,
+  .welcome-emoji,
+  .scan-icon,
+  .fingerprint {
+    animation: none !important;
+  }
+
+  .rain {
+    display: none;
+  }
+
+  .bubble,
+  .screen {
+    transition-duration: 0.15s;
+  }
+}
