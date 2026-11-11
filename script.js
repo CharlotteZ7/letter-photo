@@ -46,10 +46,11 @@
   ];
 
   const CONFIG = {
-    spawnMs: 420,      // 每多少毫秒尝试冒出一个方框（挤不下时会自动跳过）
-    lifeMs: 9500,      // 每个方框停留多久（之后淡出）
-    maxBubbles: 22,    // 屏幕上最多同时存在几个
-    order: 'random'    // 'random' 随机不重复 / 'sequence' 按上面顺序
+    spawnMs: 280,        // 每多少毫秒尝试冒出一个方框（越小越密）
+    lifeMs: 8200,        // 每个方框停留多久（之后淡出）
+    maxBubbles: 30,      // 屏幕上最多同时存在几个
+    overlapRatio: 0.2,   // 允许和新方框重叠的面积比例，越大越"叠"
+    order: 'random'      // 'random' 随机不重复 / 'sequence' 按上面顺序
   };
 
   /* 低饱和马卡龙色（取自原站配色） */
@@ -321,7 +322,7 @@
 
     var chosen = null;
     var area = w * h;
-    var tolerance = area * 0.08 + 150; // 允许一点点边角重叠，画面更满
+    var tolerance = area * CONFIG.overlapRatio + 300; // 叠一点，画面更满
 
     for (var n = 0; n < anchors.length; n++) {
       var x = anchors[n][0] + (Math.random() * 10 - 5);
