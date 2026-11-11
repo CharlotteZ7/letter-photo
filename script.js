@@ -1,4 +1,4 @@
-﻿/* =========================================================
+/* =========================================================
  * 写给蒋伯驾的一封信 · 交互
  *
  * 想改内容，只需要改下面「可修改区」：
@@ -46,11 +46,13 @@
   ];
 
   const CONFIG = {
-    spawnMs: 340,        // 每多少毫秒尝试冒出一个方框
-    lifeMs: 7000,        // 每个方框停留多久（之后淡出）
-    maxBubbles: 20,      // 屏幕上最多同时存在几个
-    targetBubbles: 20,   // 想凑到几个（挤不下时会放宽重叠）
+    spawnMs: 380,        // 每多少毫秒尝试冒出一个方框
+    maxBubbles: 15,      // 屏幕上最多同时存在几个
+    targetBubbles: 15,   // 想凑到几个（挤不下时会放宽重叠）
     overlapRatio: 0.16,  // 允许和新方框重叠的面积比例
+    lifeBase: 3400,      // 停留时长 = lifeBase + 字数 × lifePerChar
+    lifePerChar: 95,     // 长句子留得久，短句子走得快
+    centerHole: 0.62,    // 中间留给图片的"空洞"高度占比（0 = 不留）
     photoBand: 'center', // 图片区域：'center' = 中间完整图，'full' = 整屏铺满
     order: 'random'      // 'random' 随机 / 'sequence' 按上面顺序
   };
@@ -300,6 +302,11 @@
     text.className = 'bubble-text';
     text.textContent = wish;
 
+    // 每张卡片大小不一样，错落一点
+    var fs = 12 + Math.random() * 3; // 12 ~ 15px
+    text.style.fontSize = fs.toFixed(1) + 'px';
+    b.style.maxWidth = Math.round(Math.min(W * (0.44 + Math.random() * 0.26), 280)) + 'px';
+
     inner.appendChild(tag);
     inner.appendChild(text);
     b.appendChild(inner);
@@ -322,6 +329,10 @@
         anchors.push([ax, ay]);
       }
     }
+    // 再补一批纯随机点，让每个位置的出场概率尽量均匀
+    for (var rp = 0; rp < 90; rp++) {
+      anchors.push([pad + Math.random() * (maxX - pad), minY + Math.random() * (maxY - minY)]);
+    }
     // 打乱锚点顺序，避免每次从左上角开始
     for (var i = anchors.length - 1; i > 0; i--) {
       var j = (Math.random() * (i + 1)) | 0;
@@ -331,10 +342,22 @@
     }
 
     var chosen = null;
-    var bestRect = null;
-    var bestWorst = Infinity;
     var area = w * h;
     var tolerance = area * CONFIG.overlapRatio + 300;
+
+    // 中间留一块"空洞"，尽量少放卡片，让底图透出来
+    var hole = null;
+    if (CONFIG.centerHole > 0) {
+      var holeH = H * CONFIG.centerHole;
+      hole = {
+        left: W * 0.12,
+        right: W * 0.88,
+        top: (H - holeH) / 2,
+        bottom: (H + holeH) / 2
+      };
+    }
+
+    var candidates = [];
 
     for (var n = 0; n < anchors.length; n++) {
       var x = anchors[n][0] + (Math.random() * 10 - 5);
@@ -350,13 +373,36 @@
         if (ov > worst) worst = ov;
       }
 
-      if (worst <= tolerance) { chosen = rect; break; }
-      if (worst < bestWorst) { bestWorst = worst; bestRect = rect; }
+      var inHole = false;
+      if (hole) {
+        inHole = !(
+          rect.right < hole.left ||
+          rect.left > hole.right ||
+          rect.bottom < hole.top ||
+          rect.top > hole.bottom
+        );
+      }
+
+      candidates.push({ rect: rect, worst: worst, inHole: inHole });
     }
 
-    // 为了凑够 targetBubbles，实在没空位时退而求其次，用最不挤的那个位置
-    if (!chosen && bestRect && live.length < CONFIG.targetBubbles && bestWorst <= area * 0.36) {
-      chosen = bestRect;
+    // 先找洞外空位，再找洞内空位
+    for (var a = 0; a < candidates.length && !chosen; a++) {
+      if (!candidates[a].inHole && candidates[a].worst <= tolerance) chosen = candidates[a].rect;
+    }
+    for (var b2 = 0; b2 < candidates.length && !chosen; b2++) {
+      if (candidates[b2].worst <= tolerance) chosen = candidates[b2].rect;
+    }
+
+    // 为了凑够 targetBubbles，退而求其次：优先洞外、最不挤的位置
+    if (!chosen && live.length < CONFIG.targetBubbles) {
+      var best = null;
+      var bestScore = Infinity;
+      for (var c2 = 0; c2 < candidates.length; c2++) {
+        var score = candidates[c2].worst + (candidates[c2].inHole ? area * 0.18 : 0);
+        if (score < bestScore) { bestScore = score; best = candidates[c2].rect; }
+      }
+      if (best && bestScore <= area * 0.9) chosen = best;
     }
 
     if (!chosen) {
@@ -386,6 +432,7 @@
     b.style.setProperty('--float-dur', (3.2 + Math.random() * 1.8).toFixed(2) + 's');
     b.style.setProperty('--float-delay', (-Math.random() * 3).toFixed(2) + 's');
     b.style.setProperty('--float-y', (-5 - Math.random() * 8).toFixed(1) + 'px');
+    b.style.setProperty('--tilt', (Math.random() * 3 - 1.5).toFixed(1) + 'deg');
 
     requestAnimationFrame(function () { b.classList.add('in'); });
 
@@ -403,9 +450,13 @@
       retire(live[0]);
     }
 
+    // 字数越多留得越久，句子长短不同 → 消失时间也错开
+    var life = CONFIG.lifeBase + wish.length * CONFIG.lifePerChar;
+    life = Math.max(3800, Math.min(11500, life));
+
     item.timer = setTimeout(function () {
       retire(item);
-    }, CONFIG.lifeMs + Math.random() * 2500);
+    }, life + Math.random() * 300);
   }
 
   function retire(item, pop) {

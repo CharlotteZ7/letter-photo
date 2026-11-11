@@ -1,4 +1,4 @@
-﻿/* =========================================================
+/* =========================================================
    写给蒋伯驾的一封信 · 样式
    配色：低饱和天蓝 → 淡紫 → 樱粉
    ========================================================= */
@@ -422,7 +422,7 @@ body.in-wall .rain {
 
 .bubble.in {
   opacity: 1;
-  transform: translateY(0) scale(1);
+  transform: rotate(var(--tilt, 0deg));
 }
 
 .bubble.out {
@@ -434,7 +434,7 @@ body.in-wall .rain {
 /* 点一下：轻轻放大后消失 */
 .bubble.pop {
   opacity: 0;
-  transform: scale(1.08);
+  transform: rotate(var(--tilt, 0deg)) scale(1.08);
   transition: opacity 0.3s ease, transform 0.3s ease;
 }
 
